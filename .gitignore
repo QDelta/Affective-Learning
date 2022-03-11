@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+
+.DS_Store
+
+SEED-III/
+trained_models/
