@@ -14,6 +14,8 @@ class EEGDANN(nn.Module):
             nn.Linear(512, 256)
         )
         self.label_classify = nn.Sequential(
+            nn.Linear(256, 256),
+            nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, CLASS_NUM)

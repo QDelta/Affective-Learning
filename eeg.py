@@ -1,7 +1,4 @@
-import random as rand
-import numpy as np
 from torch.utils.data import Dataset
-import torch
 import scipy.io as sio
 
 # 15 * 3394 * 310
@@ -46,21 +43,6 @@ class EEGDataset(Dataset):
             data = self.transform(data)
 
         return data, label, dom
-
-# def split_data(dom_for_test):
-#     test_data = []
-#     for i, vec in enumerate(EEG_DATA[dom_for_test]):
-#         test_data.append((torch.from_numpy(vec).float(), torch.tensor(EEG_LABEL[dom_for_test][i][0] + 1)))
-#     train_data = []
-#     for t in range(DOMAIN_NUM):
-#         if t == dom_for_test:
-#             continue
-#         for i, vec in enumerate(EEG_DATA[t]):
-#             train_data.append((torch.from_numpy(vec).float(), (torch.tensor(EEG_LABEL[t][i][0] + 1), torch.tensor(t))))
-#     rand.shuffle(test_data)
-#     rand.shuffle(train_data)
-
-#     return train_data, test_data
 
 def split_data_for_svm(dom_for_test):
     test_data = []
