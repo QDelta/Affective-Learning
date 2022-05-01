@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from dann import EEGDANN
+from dann import EEGDANN, MLP
 from eeg import DOMAIN_NUM, EEGDataset
 
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -15,6 +15,14 @@ WEIGHT_DECAY = 1e-2
 
 def data_transfrom(x):
     return torch.from_numpy(x).float()
+
+def train_mlp(dom_for_test, epoches):
+    train_data = EEGDataset(dom_for_test, train=True, transform=data_transfrom)
+    test_data = EEGDataset(dom_for_test, train=False, transform=data_transfrom)
+    train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
+
+    model = MLP().to(DEVICE)
 
 def train_dann(dom_for_test, pre_epoches, epoches):
     train_data = EEGDataset(dom_for_test, train=True, transform=data_transfrom)
