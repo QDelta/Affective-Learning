@@ -1,32 +1,11 @@
 from os.path import join
 import time
-import sklearn.svm as svm
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from dann import EEGDANN
-from eeg import DOMAIN_NUM, split_data_for_svm, EEGDataset
-
-def train_test_svm(dom_for_test):
-    model = svm.SVC(kernel='linear', verbose=True, shrinking=False)
-    train_data, train_label, test_data, test_label = split_data_for_svm(dom_for_test)
-    model.fit(train_data, train_label)
-    model_output = model.predict(test_data)
-    acc_count = (model_output == test_label).sum()
-    return acc_count / len(test_label)
-
-def base_line():
-    stat_acc = []
-    for t in range(DOMAIN_NUM):
-        print(f'[info] Training and testing SVM {t + 1}')
-        acc = train_test_svm(t)
-        print(f'\n[info] Accuracy {acc}\n')
-        stat_acc.append(acc)
-    stat_acc = np.array(stat_acc)
-    print('[info] Accuracy:', stat_acc)
-    print('[info] Average accuracy:', np.average(stat_acc))
-    return stat_acc
+from eeg import DOMAIN_NUM, EEGDataset
 
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 100
