@@ -1,35 +1,36 @@
 from torch import nn
-from revgrad import RevGrad
+from kgrad import KGrad
 from eeg import DOMAIN_NUM, CLASS_NUM, INPUT_DIM
 
 class EEGDANN(nn.Module):
-    def __init__(self, lambda_=1.0):
+    def __init__(self):
         super(EEGDANN, self).__init__()
-        self.revgrad = RevGrad(lambda_)
         self.feat_extr = nn.Sequential(
             nn.Linear(INPUT_DIM, 512),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256)
+            nn.ReLU(inplace=True),
+            nn.Linear(512, 256),
         )
         self.label_classify = nn.Sequential(
             nn.Linear(256, 256),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(256, 128),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(128, CLASS_NUM)
         )
         self.domain_classify = nn.Sequential(
             nn.Linear(256, 256),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(256, 128),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Linear(128, DOMAIN_NUM)
         )
 
-    def forward(self, input):
+    def forward(self, input, label_lambda=1.0, dom_lambda=-1.0):
+        label_kgrad = KGrad(label_lambda)
+        dom_kgrad = KGrad(dom_lambda)
         feature = self.feat_extr(input)
-        label_pred = self.label_classify(feature)
-        domain_pred = self.domain_classify(self.revgrad(feature))
+        label_pred = self.label_classify(label_kgrad(feature))
+        domain_pred = self.domain_classify(dom_kgrad(feature))
         return label_pred, domain_pred

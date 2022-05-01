@@ -1,10 +1,11 @@
 from torch.utils.data import Dataset
 import scipy.io as sio
+from os.path import join
 
 # 15 * 3394 * 310
-EEG_DATA = sio.loadmat('SEED-III/EEG_X.mat')['X'][0]
+EEG_DATA = sio.loadmat(join('SEED-III', 'EEG_X.mat'))['X'][0]
 # 15 * 3394 * 1
-EEG_LABEL = sio.loadmat('SEED-III/EEG_Y.mat')['Y'][0]
+EEG_LABEL = sio.loadmat(join('SEED-III', 'EEG_Y.mat'))['Y'][0]
 
 DOMAIN_NUM = 15
 SAMPLE_PER_DOMAIN = 3394
