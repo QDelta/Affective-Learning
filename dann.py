@@ -23,7 +23,7 @@ def label_classifier():
     )
 
 def domain_classifier():
-    return  nn.Sequential(
+    return nn.Sequential(
         nn.Linear(FEATURE_DIM, 256),
         nn.ReLU(inplace=True),
         nn.Linear(256, 128),

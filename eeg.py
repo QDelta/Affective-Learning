@@ -33,7 +33,7 @@ class EEGDataset(Dataset):
         dom = self.dom_for_test
         if self.train:
             dom = idx // SAMPLE_PER_DOMAIN
-            if dom == self.dom_for_test:
+            if dom >= self.dom_for_test:
                 dom += 1
             idx %= SAMPLE_PER_DOMAIN
 
