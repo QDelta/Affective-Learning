@@ -1,20 +1,26 @@
 import sklearn.svm as svm
+import sklearn.neural_network as nn
 import numpy as np
-from eeg import DOMAIN_NUM, split_data_for_svm
+from eeg import DOMAIN_NUM, split_data
 
-def train_test_svm(dom_for_test):
-    model = svm.SVC(kernel='linear', verbose=True, shrinking=False)
-    train_data, train_label, test_data, test_label = split_data_for_svm(dom_for_test)
-    model.fit(train_data, train_label)
-    model_output = model.predict(test_data)
+def train_test_sklearn(dom_for_test, skl_model):
+    train_data, train_label, test_data, test_label = split_data(dom_for_test)
+    skl_model.fit(train_data, train_label)
+    model_output = skl_model.predict(test_data)
     acc_count = (model_output == test_label).sum()
     return acc_count / len(test_label)
 
-def base_line():
+def base_line(model_type):
     stat_acc = []
     for t in range(DOMAIN_NUM):
-        print(f'[info] Training and testing SVM {t + 1}')
-        acc = train_test_svm(t)
+        if (model_type == 'SVM'):
+            model = svm.SVC(kernel='linear', verbose=True, shrinking=False)
+        elif (model_type == 'MLP'):
+            model = nn.MLPClassifier(hidden_layer_sizes=(256, 128), max_iter=150, verbose=True)
+        else:
+            print(f'[Error] Unsupported model type {model_type}, expect SVM or MLP')
+        print(f'[info] Training and testing {model_type} {t + 1}')
+        acc = train_test_sklearn(t, model)
         print(f'\n[info] Accuracy {acc}\n')
         stat_acc.append(acc)
     stat_acc = np.array(stat_acc)
@@ -23,4 +29,4 @@ def base_line():
     return stat_acc
 
 if __name__ == '__main__':
-    base_line()
+    base_line('SVM')

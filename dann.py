@@ -45,14 +45,3 @@ class EEGDANN(nn.Module):
         label_pred = self.label_classify(label_kgrad(feature))
         domain_pred = self.domain_classify(dom_kgrad(feature))
         return label_pred, domain_pred
-
-class MLP(nn.Module):
-    def __init__(self):
-        super(MLP, self).__init__()
-        self.feat_extr = feature_extractor
-        self.label_classify = label_classifier()
-
-    def forward(self, input):
-        feature = self.feat_extr(input)
-        label_pred = self.label_classify(feature)
-        return label_pred
