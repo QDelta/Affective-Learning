@@ -3,8 +3,8 @@ import sklearn.neural_network as nn
 import numpy as np
 from eeg import DOMAIN_NUM, split_data
 
-def train_test_sklearn(dom_for_test, skl_model):
-    train_data, train_label, test_data, test_label = split_data(dom_for_test)
+def train_test_sklearn(target_dom, skl_model):
+    train_data, train_label, test_data, test_label = split_data(target_dom)
     skl_model.fit(train_data, train_label)
     model_output = skl_model.predict(test_data)
     acc_count = (model_output == test_label).sum()

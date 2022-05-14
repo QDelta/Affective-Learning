@@ -13,38 +13,39 @@ SAMPLE_PER_DOMAIN = 3394
 INPUT_DIM = 310
 CLASS_NUM = 3
 
-def split_data(dom_for_test):
-    test_data = []
-    test_label = []
-    for i, vec in enumerate(EEG_DATA[dom_for_test]):
-        test_data.append(vec)
-        test_label.append(EEG_LABEL[dom_for_test][i][0] + 1)
-    train_data = []
-    train_label = []
+def split_data(target_dom):
+    target_data = []
+    target_label = []
+    for i, vec in enumerate(EEG_DATA[target_dom]):
+        target_data.append(vec)
+        target_label.append(EEG_LABEL[target_dom][i][0] + 1)
+    source_data = []
+    source_label = []
     for t in range(DOMAIN_NUM):
-        if t == dom_for_test:
+        if t == target_dom:
             continue
         for i, vec in enumerate(EEG_DATA[t]):
-            train_data.append(vec)
-            train_label.append(EEG_LABEL[t][i][0] + 1)
-    return (np.array(train_data, dtype=np.float64),
-            np.array(train_label, dtype=np.int64),
-            np.array(test_data, dtype=np.float64),
-            np.array(test_label, dtype=np.int64))
+            source_data.append(vec)
+            source_label.append(EEG_LABEL[t][i][0] + 1)
+    return (np.array(source_data, dtype=np.float64),
+            np.array(source_label, dtype=np.int64),
+            np.array(target_data, dtype=np.float64),
+            np.array(target_label, dtype=np.int64))
 
 class EEGDataset(Dataset):
     def __init__(
         self,
-        dom_for_test: int,
-        train: bool = True,
+        target_dom: int,
+        source: bool = True,
         transform = None
     ) -> None:
         self.transform = transform
-        self.dom_for_test = dom_for_test
-        if train:
-            self.data, self.label, _, _ = split_data(dom_for_test)
+        self.target_dom = target_dom
+        self.source = source
+        if source:
+            self.data, self.label, _, _ = split_data(target_dom)
         else:
-            _, _, self.data, self.label = split_data(dom_for_test)
+            _, _, self.data, self.label = split_data(target_dom)
 
     def __len__(self) -> int:
         return len(self.data)
@@ -56,8 +57,11 @@ class EEGDataset(Dataset):
         if self.transform:
             data = self.transform(data)
 
-        dom = idx // SAMPLE_PER_DOMAIN
-        if dom >= self.dom_for_test:
-            dom += 1
+        # if self.source:
+        #     dom = idx // SAMPLE_PER_DOMAIN
+        #     if dom >= self.target_dom:
+        #         dom += 1
+        # else:
+        #     dom = self.target_dom
 
-        return data, label, np.int64(dom)
+        return data, label, np.float32(0 if self.source else 1)
