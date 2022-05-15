@@ -10,7 +10,7 @@ from eeg import CLASS_NUM, DOMAIN_NUM, EEGDataset
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 100
 LR_INIT = 1e-4
-MOMENTUM = 0.0
+MOMENTUM = 0.3
 WEIGHT_DECAY = 1e-2
 
 def data_transfrom(x):
@@ -27,8 +27,6 @@ def train_dann(target_dom, epoches):
     model = EEGDANN().to(DEVICE)
     optimizer = torch.optim.SGD(model.parameters(),
         lr=LR_INIT, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
-    # optimizer = torch.optim.Adam(model.parameters(),
-    #     lr=LR_INIT, weight_decay=WEIGHT_DECAY)
     loss_label = nn.CrossEntropyLoss()
     loss_domain = nn.BCELoss()
 
@@ -50,7 +48,7 @@ def train_dann(target_dom, epoches):
             y = y.to(DEVICE)
             dom = dom.to(DEVICE)
 
-            # warm start
+            # warm start of GRL
             ratio = (batch + e * source_batchnum) / (epoches * source_batchnum)
             ratio = 2.0 / (1.0 + np.exp(-100 * ratio))
             dom_lambda = 2.0 * (1 - ratio)
@@ -60,14 +58,10 @@ def train_dann(target_dom, epoches):
             dom_loss = loss_domain(dom_pred.flatten(), dom)
             loss = y_loss + dom_loss
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
             if batch % 100 == 0:
                 current = batch * BATCH_SIZE
                 print(f"loss: {y_loss.item():>7f} dom_loss: {dom_loss.item():>7f}  [{current+1:>5d}/{source_size:>5d}]")
-            
+
             # unsupervised, target domain
             if batch % target_batchnum == 0:
                 target_data_iter = iter(target_loader)
@@ -76,10 +70,11 @@ def train_dann(target_dom, epoches):
             dom = dom.to(DEVICE)
 
             _, dom_pred = model(x, label_lambda=0.0, dom_lambda=dom_lambda)
-            dom_loss = loss_domain(dom_pred.flatten(), dom)
+            target_dom_loss = loss_domain(dom_pred.flatten(), dom)
 
+            loss = y_loss + dom_loss + target_dom_loss
             optimizer.zero_grad()
-            dom_loss.backward()
+            loss.backward()
             optimizer.step()
 
         # Testing
@@ -114,7 +109,7 @@ if __name__ == '__main__':
     print("[info] Current device:", DEVICE)
     start_time = time.time()
     for d in range(DOMAIN_NUM):
-        epoches = 200
+        epoches = 100
         stat_acc_loss = train_dann(d, epoches)
         np.savetxt(join('output', f'acc_loss{d}.txt'), stat_acc_loss)
     end_time = time.time()

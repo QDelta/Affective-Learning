@@ -4,8 +4,9 @@ from os.path import join
 from eeg import DOMAIN_NUM
 
 if __name__ == '__main__':
+    DIR = join('output')
     for d in range(DOMAIN_NUM):
-        stat_acc_loss = np.loadtxt(join('output', f'acc_loss{d}.txt'))
+        stat_acc_loss = np.loadtxt(join(DIR, f'acc_loss{d}.txt'))
         epoch = []
         acc = []
         loss = []
