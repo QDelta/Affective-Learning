@@ -1,6 +1,6 @@
 from torch import nn
 from kgrad import KGradF
-from eeg import DOMAIN_NUM, CLASS_NUM, INPUT_DIM
+from eeg import CLASS_NUM, INPUT_DIM
 
 FEATURE_DIM = 128
 
@@ -30,7 +30,7 @@ def domain_classifier():
     return nn.Sequential(
         nn.Linear(FEATURE_DIM, 32),
         nn.BatchNorm1d(32),
-        nn.ReLU(inplace=True),
+        nn.ReLU(True),
         nn.Linear(32, 1),
         nn.Sigmoid()
     )

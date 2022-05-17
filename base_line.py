@@ -1,5 +1,5 @@
 import sklearn.svm as svm
-import sklearn.neural_network as nn
+import sklearn.neural_network as skl_nn
 import numpy as np
 from eeg import DOMAIN_NUM, split_data
 
@@ -16,7 +16,13 @@ def base_line(model_type):
         if (model_type == 'SVM'):
             model = svm.SVC(kernel='linear', verbose=True, shrinking=False)
         elif (model_type == 'MLP'):
-            model = nn.MLPClassifier(hidden_layer_sizes=(256, 128), max_iter=150, verbose=True)
+            # similar parameters as DANN
+            model = skl_nn.MLPClassifier(
+                hidden_layer_sizes=(256, 128, 64, 32),
+                solver='sgd', batch_size=100, max_iter=200,
+                learning_rate_init=1e-4,
+                momentum=0.2, nesterovs_momentum=False,
+                alpha=1e-2, verbose=True)
         else:
             print(f'[Error] Unsupported model type {model_type}, expect SVM or MLP')
         print(f'[info] Training and testing {model_type} {t + 1}')

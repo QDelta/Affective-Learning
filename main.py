@@ -1,5 +1,6 @@
 from os.path import join
 import time
+from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn
@@ -10,7 +11,7 @@ from eeg import CLASS_NUM, DOMAIN_NUM, EEGDataset
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 BATCH_SIZE = 100
 LR_INIT = 1e-4
-MOMENTUM = 0.3
+MOMENTUM = 0.2
 WEIGHT_DECAY = 1e-2
 
 def data_transfrom(x):
@@ -35,8 +36,11 @@ def train_dann(target_dom, epoches):
     source_batchnum = len(source_loader)
     target_batchnum = len(target_loader)
 
+    best_acc = 0.0
+    best_model = None
+
     for e in range(epoches):
-        print(f'Data {target_dom} Epoch {e + 1}')
+        print(f'Target {target_dom} Epoch {e + 1}')
 
         # Training
         model.train()
@@ -102,15 +106,24 @@ def train_dann(target_dom, epoches):
         correct /= target_size
         stat_acc_loss.append((correct, test_loss))
         print(f'Test Accuracy {(100 * correct):>0.1f}% Avg Loss {test_loss:>8f}\n')
+        
+        if (correct > best_acc):
+            best_acc = correct
+            best_model = deepcopy(model.state_dict())
 
-    return np.array(stat_acc_loss)
+    return np.array(stat_acc_loss), best_model, best_acc
 
 if __name__ == '__main__':
     print("[info] Current device:", DEVICE)
     start_time = time.time()
+    accs = []
     for d in range(DOMAIN_NUM):
-        epoches = 100
-        stat_acc_loss = train_dann(d, epoches)
+        epoches = 200
+        stat_acc_loss, model, acc = train_dann(d, epoches)
         np.savetxt(join('output', f'acc_loss{d}.txt'), stat_acc_loss)
+        accs.append(acc)
+    accs = np.array(accs)
+    print('[info] Accuracy:', accs)
+    print('[info] Average acc:', np.average(accs))
     end_time = time.time()
     print('[info] Time used:', end_time - start_time)
