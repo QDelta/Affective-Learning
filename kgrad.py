@@ -1,6 +1,4 @@
-from torch import tensor
 from torch.autograd import Function
-from torch.nn import Module
 
 class KGradF(Function):
     @staticmethod

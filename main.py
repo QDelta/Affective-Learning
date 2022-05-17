@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from dann import EEGDANN
 from eeg import CLASS_NUM, DOMAIN_NUM, EEGDataset
 
-DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BATCH_SIZE = 100
 LR_INIT = 1e-4
 MOMENTUM = 0.2
@@ -17,7 +17,7 @@ WEIGHT_DECAY = 1e-2
 def data_transfrom(x):
     return torch.from_numpy(x).float()
 
-def train_dann(target_dom, epoches):
+def train_dann(target_dom : int, epoches : int, enable_da : bool = True):
     source_data = EEGDataset(target_dom, source=True, transform=data_transfrom)
     target_data = EEGDataset(target_dom, source=False, transform=data_transfrom)
     source_loader = DataLoader(source_data, batch_size=BATCH_SIZE, shuffle=True)
@@ -52,7 +52,7 @@ def train_dann(target_dom, epoches):
             y = y.to(DEVICE)
             dom = dom.to(DEVICE)
 
-            # warm start of GRL
+            # warm start
             ratio = (batch + e * source_batchnum) / (epoches * source_batchnum)
             ratio = 2.0 / (1.0 + np.exp(-100 * ratio))
             dom_lambda = 2.0 * (1 - ratio)
@@ -60,23 +60,26 @@ def train_dann(target_dom, epoches):
             y_pred, dom_pred = model(x, label_lambda=1.0, dom_lambda=dom_lambda)
             y_loss = loss_label(y_pred, y)
             dom_loss = loss_domain(dom_pred.flatten(), dom)
-            loss = y_loss + dom_loss
 
             if batch % 100 == 0:
                 current = batch * BATCH_SIZE
                 print(f"loss: {y_loss.item():>7f} dom_loss: {dom_loss.item():>7f}  [{current+1:>5d}/{source_size:>5d}]")
 
-            # unsupervised, target domain
-            if batch % target_batchnum == 0:
-                target_data_iter = iter(target_loader)
-            x, _, dom = next(target_data_iter)
-            x = x.to(DEVICE)
-            dom = dom.to(DEVICE)
+            if enable_da:
+                # unsupervised, target domain
+                if batch % target_batchnum == 0:
+                    target_data_iter = iter(target_loader)
+                x, _, dom = next(target_data_iter)
+                x = x.to(DEVICE)
+                dom = dom.to(DEVICE)
 
-            _, dom_pred = model(x, label_lambda=0.0, dom_lambda=dom_lambda)
-            target_dom_loss = loss_domain(dom_pred.flatten(), dom)
+                _, dom_pred = model(x, label_lambda=0.0, dom_lambda=dom_lambda)
+                target_dom_loss = loss_domain(dom_pred.flatten(), dom)
 
-            loss = y_loss + dom_loss + target_dom_loss
+                loss = y_loss + dom_loss + target_dom_loss
+            else:
+                loss = y_loss
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -106,8 +109,8 @@ def train_dann(target_dom, epoches):
         correct /= target_size
         stat_acc_loss.append((correct, test_loss))
         print(f'Test Accuracy {(100 * correct):>0.1f}% Avg Loss {test_loss:>8f}\n')
-        
-        if (correct > best_acc):
+
+        if correct > best_acc:
             best_acc = correct
             best_model = deepcopy(model.state_dict())
 
@@ -119,7 +122,7 @@ if __name__ == '__main__':
     accs = []
     for d in range(DOMAIN_NUM):
         epoches = 200
-        stat_acc_loss, model, acc = train_dann(d, epoches)
+        stat_acc_loss, model, acc = train_dann(d, epoches, enable_da=True)
         np.savetxt(join('output', f'acc_loss{d}.txt'), stat_acc_loss)
         accs.append(acc)
     accs = np.array(accs)
