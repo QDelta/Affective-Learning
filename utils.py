@@ -3,7 +3,7 @@ from torch.autograd import Function
 
 class KGradF(Function):
     @staticmethod
-    def forward(ctx, x: torch.Tensor, lambda_ : float):
+    def forward(ctx, x: torch.Tensor, lambda_: float):
         ctx.lambda_ = lambda_
         return x.view_as(x)
 

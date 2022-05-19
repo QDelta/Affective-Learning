@@ -1,6 +1,6 @@
 from torch import nn
 from utils import KGradF
-from eeg import CLASS_NUM, INPUT_DIM
+from eeg import CLASS_NUM, INPUT_DIM, DOMAIN_NUM
 
 FEATURE_DIM = 128
 
@@ -28,16 +28,18 @@ def label_classifier():
 
 def domain_classifier():
     return nn.Sequential(
-        nn.Linear(FEATURE_DIM, 32),
-        nn.BatchNorm1d(32),
+        nn.Linear(FEATURE_DIM, 64),
         nn.ReLU(True),
-        nn.Linear(32, 1),
-        nn.Sigmoid()
+        nn.Dropout(),
+        nn.Linear(64, 64),
+        nn.BatchNorm1d(64),
+        nn.ReLU(True),
+        nn.Linear(64, DOMAIN_NUM - 1)
     )
 
-class EEGDANN(nn.Module):
+class EEGDGDANN(nn.Module):
     def __init__(self):
-        super(EEGDANN, self).__init__()
+        super(EEGDGDANN, self).__init__()
         self.feat_extr = feature_extractor()
         self.label_classify = label_classifier()
         self.domain_classify = domain_classifier()

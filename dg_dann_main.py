@@ -5,49 +5,47 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from dann import EEGDANN
-from eeg import CLASS_NUM, DOMAIN_NUM, EEGDataset
+from dgdann import EEGDGDANN
+from eeg import CLASS_NUM, DOMAIN_NUM, EEGDatasetDG
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BATCH_SIZE = 100
 LR_INIT = 1e-4
-MOMENTUM = 0.2
+MOMENTUM = 0.0
 WEIGHT_DECAY = 1e-2
 
 def data_transfrom(x):
     return torch.from_numpy(x).float()
 
-def train_dann(target_dom: int, epoches: int, enable_da: bool = True):
-    source_data = EEGDataset(target_dom, source=True, transform=data_transfrom)
-    target_data = EEGDataset(target_dom, source=False, transform=data_transfrom)
-    source_loader = DataLoader(source_data, batch_size=BATCH_SIZE, shuffle=True)
-    target_loader = DataLoader(target_data, batch_size=BATCH_SIZE, shuffle=True)
+def train_dg_dann(test_dom: int, epoches: int):
+    train_data = EEGDatasetDG(test_dom, train=True, transform=data_transfrom)
+    test_data = EEGDatasetDG(test_dom, train=False, transform=data_transfrom)
+    train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE)
 
     stat_acc_loss = []
 
-    model = EEGDANN().to(DEVICE)
+    model = EEGDGDANN().to(DEVICE)
     optimizer = torch.optim.SGD(model.parameters(),
         lr=LR_INIT, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
     loss_label = nn.CrossEntropyLoss()
-    loss_domain = nn.BCELoss()
+    loss_domain = nn.CrossEntropyLoss()
 
-    source_size = len(source_data)
-    target_size = len(target_data)
-    source_batchnum = len(source_loader)
-    target_batchnum = len(target_loader)
+    source_size = len(train_data)
+    target_size = len(test_data)
+    source_batchnum = len(train_loader)
+    target_batchnum = len(test_loader)
 
     best_acc = 0.0
     best_model = None
 
     for e in range(epoches):
-        print(f'Target {target_dom} Epoch {e + 1}')
+        print(f'Target {test_dom} Epoch {e + 1}')
 
         # Training
         model.train()
 
-        target_data_iter = None
-        for batch, (x, y, dom) in enumerate(source_loader):
-            # supervised, source domain
+        for batch, (x, y, dom) in enumerate(train_loader):
             x = x.to(DEVICE)
             y = y.to(DEVICE)
             dom = dom.to(DEVICE)
@@ -59,26 +57,13 @@ def train_dann(target_dom: int, epoches: int, enable_da: bool = True):
 
             y_pred, dom_pred = model(x, label_lambda=1.0, dom_lambda=dom_lambda)
             y_loss = loss_label(y_pred, y)
-            dom_loss = loss_domain(dom_pred.flatten(), dom)
+            dom_loss = loss_domain(dom_pred, dom)
 
             if batch % 100 == 0:
                 current = batch * BATCH_SIZE
                 print(f"loss: {y_loss.item():>7f} dom_loss: {dom_loss.item():>7f}  [{current+1:>5d}/{source_size:>5d}]")
 
-            if enable_da:
-                # unsupervised, target domain
-                if batch % target_batchnum == 0:
-                    target_data_iter = iter(target_loader)
-                x, _, dom = next(target_data_iter)
-                x = x.to(DEVICE)
-                dom = dom.to(DEVICE)
-
-                _, dom_pred = model(x, label_lambda=0.0, dom_lambda=dom_lambda)
-                target_dom_loss = loss_domain(dom_pred.flatten(), dom)
-
-                loss = y_loss + dom_loss + target_dom_loss
-            else:
-                loss = y_loss
+            loss = y_loss + dom_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -90,7 +75,7 @@ def train_dann(target_dom: int, epoches: int, enable_da: bool = True):
         l_correct = np.zeros(CLASS_NUM)
         l_count = np.zeros(CLASS_NUM)
         with torch.no_grad():
-            for x, y, _ in target_loader:
+            for x, y, _ in test_loader:
                 x = x.to(DEVICE)
                 y = y.to(DEVICE)
 
@@ -122,7 +107,7 @@ if __name__ == '__main__':
     accs = []
     for d in range(DOMAIN_NUM):
         epoches = 200
-        stat_acc_loss, model, acc = train_dann(d, epoches, enable_da=True)
+        stat_acc_loss, model, acc = train_dg_dann(d, epoches)
         np.savetxt(join('output', f'acc_loss{d}.txt'), stat_acc_loss)
         accs.append(acc)
     accs = np.array(accs)

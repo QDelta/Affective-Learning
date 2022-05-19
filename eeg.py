@@ -13,6 +13,14 @@ SAMPLE_PER_DOMAIN = 3394
 INPUT_DIM = 310
 CLASS_NUM = 3
 
+# merge all data without labels for unsupervised learning
+def merge_data():
+    data = []
+    for t in range(DOMAIN_NUM):
+        for i in range(SAMPLE_PER_DOMAIN):
+            data.append(EEG_DATA[t][i])
+    return np.array(data, dtype=np.float64)
+
 def split_data(target_dom):
     target_data = []
     target_label = []
@@ -40,7 +48,6 @@ class EEGDataset(Dataset):
         transform = None
     ) -> None:
         self.transform = transform
-        self.target_dom = target_dom
         self.source = source
         if source:
             self.data, self.label, _, _ = split_data(target_dom)
@@ -57,11 +64,29 @@ class EEGDataset(Dataset):
         if self.transform:
             data = self.transform(data)
 
-        # if self.source:
-        #     dom = idx // SAMPLE_PER_DOMAIN
-        #     if dom >= self.target_dom:
-        #         dom += 1
-        # else:
-        #     dom = self.target_dom
-
         return data, label, np.float32(0 if self.source else 1)
+
+class EEGDatasetDG(Dataset):
+    def __init__(
+        self,
+        test_dom: int,
+        train: bool = True,
+        transform = None
+    ) -> None:
+        self.transform = transform
+        if train:
+            self.data, self.label, _, _ = split_data(test_dom)
+        else:
+            _, _, self.data, self.label = split_data(test_dom)
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, idx) -> tuple:
+        data = self.data[idx]
+        label = self.label[idx]
+
+        if self.transform:
+            data = self.transform(data)
+
+        return data, label, np.int64(idx // SAMPLE_PER_DOMAIN)

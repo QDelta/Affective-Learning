@@ -23,6 +23,7 @@ def base_line(model_type):
     stat_acc = np.array(stat_acc)
     print('[info] Accuracy:', stat_acc)
     print('[info] Average accuracy:', np.average(stat_acc))
+    print('[info] Accuracy std:', np.std(stat_acc))
     return stat_acc
 
 if __name__ == '__main__':
