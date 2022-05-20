@@ -1,4 +1,4 @@
-import sklearn.svm as svm
+from sklearn import svm
 import numpy as np
 from eeg import DOMAIN_NUM, split_data
 

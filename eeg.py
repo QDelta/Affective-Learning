@@ -21,6 +21,7 @@ def merge_data():
             data.append(EEG_DATA[t][i])
     return np.array(data, dtype=np.float64)
 
+# split source domain and target domain
 def split_data(target_dom):
     target_data = []
     target_label = []
